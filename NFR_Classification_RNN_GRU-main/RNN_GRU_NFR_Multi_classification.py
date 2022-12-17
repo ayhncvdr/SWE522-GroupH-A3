@@ -78,7 +78,7 @@ print(device_lib.list_local_devices())
 # The model contains 300-dimensional vectors for 3 million words and phrases. Link here to the official web page for this project -- https://code.google.com/archive/p/word2vec/
 # Per the official website link above, one could download the model as a gz file from the archives here -- https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit (or)
 vec_model = gensim.models.KeyedVectors.load_word2vec_format(
-    'C:/Users/AyhanÇavdar/Desktop/NFR_Classification_RNN_LSTM-main/GoogleNews-vectors-negative300.bin', binary=True)
+    'C:/Users/AyhanÇavdar/Desktop/NFR_Classification_RNN_GRU-main/GoogleNews-vectors-negative300.bin', binary=True)
 
 
 # In[]:
@@ -110,7 +110,7 @@ print(vocab_size)
 
 # import the dataset from the Dataset folder
 df = pd.read_csv(
-    'C:/Users/AyhanÇavdar/Desktop/NFR_Classification_RNN_LSTM-main/NFR_CSV.csv')
+    'C:/Users/AyhanÇavdar/Desktop/NFR_Classification_RNN_GRU-main/NFR_CSV.csv')
 df.info()
 
 
