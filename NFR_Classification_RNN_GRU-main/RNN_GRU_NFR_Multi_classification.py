@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
 from psutil import virtual_memory
@@ -17,46 +17,55 @@ from sklearn.metrics import multilabel_confusion_matrix
 from sklearn.model_selection import KFold
 import sklearn.datasets
 from sklearn.feature_extraction import _stop_words
+from nltk.stem.lancaster import LancasterStemmer
+from nltk import punkt
+import nltk
+from scipy import sparse
+from keras.layers import Dropout
+from sklearn.model_selection import cross_val_score
+from keras.utils import np_utils
+from keras.wrappers.scikit_learn import KerasClassifier
+from keras.utils.np_utils import to_categorical
+from keras.layers import Dense, Embedding, LSTM, SpatialDropout1D, GRU
+from keras.models import Sequential
+from sklearn.preprocessing import LabelEncoder
+from keras.preprocessing.sequence import pad_sequences
+from keras.preprocessing.text import Tokenizer
+from matplotlib.patches import Patch
+import matplotlib.pyplot as plt
+from keras.callbacks import EarlyStopping
+import datetime
+from sklearn.model_selection import LeaveOneOut
+from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import train_test_split
+import tensorflow as tf
+from collections import Counter
+import seaborn as sns
+import pandas as pd
+import numpy as np
+import logging
+import re
+from os.path import exists
+import os
 import sys
 import gensim
-import os
-from os.path import exists
-import re
-import logging
-import numpy as np
-import pandas as pd
-import seaborn as sns
-from collections import Counter
-import tensorflow as tf
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import StratifiedKFold
-from sklearn.model_selection import LeaveOneOut
-import datetime
-import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
-from keras_preprocessing.text import Tokenizer
-from keras_preprocessing.sequence import pad_sequences
-from sklearn.preprocessing import LabelEncoder
-from keras.models import Sequential
-from keras.layers import Dense, Embedding, LSTM, SpatialDropout1D, GRU
-from sklearn.model_selection import train_test_split
-from keras.utils.np_utils import to_categorical
-from keras.callbacks import EarlyStopping
-from keras.wrappers.scikit_learn import KerasClassifier
-from keras.utils import np_utils
-from sklearn.model_selection import cross_val_score
-from keras.layers import Conv1D
-from keras.layers import MaxPooling1D
-from keras.layers import Flatten
-from keras.layers import Dropout
+print(sys.path)
+# from keras.callbacks import EarlyStopping
 # use natural language toolkit
-from scipy import sparse
-import nltk
-from nltk import punkt
-from nltk.stem.lancaster import LancasterStemmer
 nltk.download('punkt')
 nltk.download('stopwords')
 STOPWORDS = set(stopwords.words('english'))
+
+
+# In[3]:
+
+
+# connect to local google drive if using google colab by un-commenting the below commands
+# from google.colab import drive
+# drive.mount('/content/drive')
+
+
+# In[4]:
 
 
 ram_gb = virtual_memory().total / 1e9
@@ -65,6 +74,9 @@ if ram_gb < 20:
     print('You are using a normal-RAM runtime!')
 else:
     print('You are using a high-RAM runtime!')
+
+
+# In[5]:
 
 
 # check if GPU is used
@@ -78,10 +90,10 @@ print(device_lib.list_local_devices())
 # The model contains 300-dimensional vectors for 3 million words and phrases. Link here to the official web page for this project -- https://code.google.com/archive/p/word2vec/
 # Per the official website link above, one could download the model as a gz file from the archives here -- https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit (or)
 vec_model = gensim.models.KeyedVectors.load_word2vec_format(
-    'C:/Users/AyhanÇavdar/Desktop/NFR_Classification_RNN_GRU-main/GoogleNews-vectors-negative300.bin', binary=True)
+    'C:/Users/AyhanÇavdar/Desktop/SWE522-GroupH-A3/NFR_Classification_RNN_GRU-main/GoogleNews-vectors-negative300.bin', binary=True)
 
 
-# In[]:
+# In[6]:
 
 
 ram_gb = virtual_memory().total / 1e9
@@ -105,22 +117,22 @@ vocab_size = len(vec_model.index_to_key)
 print(vocab_size)
 
 
-# In[]:
+# In[7]:
 
 
 # import the dataset from the Dataset folder
 df = pd.read_csv(
-    'C:/Users/AyhanÇavdar/Desktop/NFR_Classification_RNN_GRU-main/NFR_CSV.csv')
+    '"C:/Users/AyhanÇavdar/Desktop/SWE522-GroupH-A3/NFR_Classification_RNN_GRU-main/NFR_CSV.csv"')
 df.info()
 
 
-# In[]:
+# In[8]:
 
 
 df.class_name.value_counts()
 
 
-# In[]:
+# In[9]:
 
 
 # function to print out a specific observation by passing the index of that in the dataset
@@ -134,7 +146,7 @@ def print_plot(index):
 print_plot(10)
 
 
-# In[]:
+# In[10]:
 
 
 print_plot(100)
@@ -344,18 +356,18 @@ def create_model_GRU():
                   'acc', tf.keras.metrics.AUC(), tf.keras.metrics.Precision(), tf.keras.metrics.Recall()])
     print(model.summary())
     return model
-# In[ ]:
 
 
-""" def create_model_CNN():
+""" def create_model_LSTM():
+    #The TensorFlow Keras API makes easy to build models and experiment while Keras handles the complexity of connecting everything together. 
+    #The tf.keras.Sequential model is a linear stack of layers. 
+    #In this case, one LSTM layer with 100 nodes each, and an output layer with 5 nodes representing our label predictions. 
     model = Sequential()
     model.add(Embedding(len(tokenizer.word_index) + 1, EMBEDDING_DIM, weights=[wv_matrix], trainable=False, input_length=X.shape[1]))
     model.add(SpatialDropout1D(0.2))
-    model.add(Conv1D(filters=128, kernel_size=5, activation='relu'))
-    model.add(MaxPooling1D(pool_size=2))
-    model.add(Flatten())
+    model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2))
     model.add(Dense(5, activation='softmax'))
-    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc', tf.keras.metrics.AUC(), tf.keras.metrics.Precision(),tf.keras.metrics.Recall()])
+    model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc', tf.keras.metrics.AUC(), tf.keras.metrics.Precision(),tf.keras.metrics.Recall()])    
     print(model.summary())
     return model
  """
@@ -573,83 +585,100 @@ print(pred, labels[np.argmax(pred)])
 # In[ ]:
 
 
-# mapping target variable's classes to unique labels and then to one hot labels
-""" labels = sorted(list(set(df['class_name'].tolist())))
-one_hot = np.zeros((len(labels), len(labels)), int)
-np.fill_diagonal(one_hot, 1)
-label_dict = dict(zip(labels, one_hot))
-num_labels = []
-for z in range(len(labels)):
-    num_labels.append(z)
+# #mapping target variable's classes to unique labels and then to one hot labels
+# labels = sorted(list(set(df['class_name'].tolist())))
+# one_hot = np.zeros((len(labels), len(labels)), int)
+# np.fill_diagonal(one_hot, 1)
+# label_dict = dict(zip(labels, one_hot))
+# num_labels = []
+# for z in range(len(labels)):
+#     num_labels.append(z)
 
-num_label_dict = dict(zip(labels, num_labels))
+# num_label_dict = dict(zip(labels, num_labels))
 
-x_raw = df['sentence'].apply(lambda x: clean_text(x)).tolist()
-y_raw = df['class_name'].apply(lambda y: label_dict[y]).tolist()
-y_raw_num = df['class_name'].apply(lambda y: num_label_dict[y]).tolist() #current class stored as 1 - as before
-y = np.array(y_raw)
-y_num = np.array(y_raw_num)
-print(y,y_num)
- """
-
-# In[ ]:
-
-""" 
-Y_test_text =  list(map(sequence_to_text, Y_test))
-print(Y_test_text)
-Y_test_cm_text = list(map(sequence_to_text, Y_pred_test_cm))
-print(Y_test_cm_text)
-X_test_text = list(map(sequence_to_text, X_test))
-print(X_test_text) """
+# x_raw = df['sentence'].apply(lambda x: clean_text(x)).tolist()
+# y_raw = df['class_name'].apply(lambda y: label_dict[y]).tolist()
+# y_raw_num = df['class_name'].apply(lambda y: num_label_dict[y]).tolist() #current class stored as 1 - as before
+# y = np.array(y_raw)
+# y_num = np.array(y_raw_num)
+# print(y,y_num)
 
 
 # In[ ]:
 
-""" Y_test_no_0 = list(filter(lambda num: num != 0, Y_test))
-Y_test_text = Y_test
-for value in range(0,len(Y_test_text)):
-    if Y_test_text[value] <= 0:
-        del Y_test_text[value]
-        print(Y_test_text)
-print(Y_test_text)
-Y_test_text =  list(map(sequence_to_text, Y_test_no_0))
-print(Y_test_text)
-Y_test_cm_text = list(map(sequence_to_text, Y_pred_test_cm))
-print(Y_test_cm_text)
-X_test_text = list(map(sequence_to_text, X_test))
-print(X_test_text) """
 
-# In[ ]:
-
-
-""" X_train, X_test, Y_train, Y_test = train_test_split(X,Y, test_size = 0.10, random_state = 42)  
-estimator = KerasClassifier(build_fn=create_model, epochs=3, batch_size=60, verbose=0)
-kfold = KFold(n_splits=2, shuffle=True)
-results = cross_val_score(estimator, X_train, Y_train, cv=kfold)
-print("Baseline: %.2f%% (%.2f%%)" % (results.mean()*100, results.std()*100))
-print(results) """
+# print(X_test)
+# for value in range(0,len(X_test)):
+#     X_test_1[value] = X_test[value] != 0
+#     print(X_test_0[value])
+# # print(Y_test_text)
+# # X_test_0 = X_test[X_test != 0]
+# # print(X_test_0)
+# # X_test_text = list(map(sequence_to_text, X_test_0))
+# # print(X_test_text)
 
 
 # In[ ]:
 
-""" 
-encoder = LabelEncoder()
-encoder.fit(df['class_name'])
-encoded_Y = encoder.transform(df['class_name'])
 
-dummy_y = np_utils.to_categorical(encoded_Y)
-print(dummy_y)
- """
+# Y_test_text =  list(map(sequence_to_text, Y_test))
+# print(Y_test_text)
+# Y_test_cm_text = list(map(sequence_to_text, Y_pred_test_cm))
+# print(Y_test_cm_text)
+# X_test_text = list(map(sequence_to_text, X_test))
+# print(X_test_text)
+
 
 # In[ ]:
 
 
-""" y_pred=model.predict_classes(X_test)
-y_pred=pd.get_dummies(y_pred)
-print(X_test, y_pred)
-print(Y_test)
+# # Y_test_no_0 = list(filter(lambda num: num != 0, Y_test))
+# Y_test_text = Y_test
+# for value in range(0,len(Y_test_text)):
+#     if Y_test_text[value] <= 0:
+#         del Y_test_text[value]
+#         print(Y_test_text)
+# print(Y_test_text)
+# # Y_test_text =  list(map(sequence_to_text, Y_test_no_0))
+# # print(Y_test_text)
+# # Y_test_cm_text = list(map(sequence_to_text, Y_pred_test_cm))
+# # print(Y_test_cm_text)
+# # X_test_text = list(map(sequence_to_text, X_test))
+# # print(X_test_text)
 
-multilabel_confusion_matrix(Y_test, y_pred, labels=['Performance', 'Usability', 'Security', 'Operability', 'Maintainability']) """
+
+# In[ ]:
+
+
+# X_train, X_test, Y_train, Y_test = train_test_split(X,Y, test_size = 0.10, random_state = 42)
+# estimator = KerasClassifier(build_fn=create_model, epochs=3, batch_size=60, verbose=0)
+# kfold = KFold(n_splits=2, shuffle=True)
+# results = cross_val_score(estimator, X_train, Y_train, cv=kfold)
+# print("Baseline: %.2f%% (%.2f%%)" % (results.mean()*100, results.std()*100))
+# print(results)
+
+
+# In[ ]:
+
+
+# # encode class values as integers
+# encoder = LabelEncoder()
+# encoder.fit(df['class_name'])
+# encoded_Y = encoder.transform(df['class_name'])
+# # convert integers to dummy variables (i.e. one hot encoded)
+# dummy_y = np_utils.to_categorical(encoded_Y)
+# print(dummy_y)
+
+
+# In[ ]:
+
+
+# y_pred=model.predict_classes(X_test)
+# y_pred=pd.get_dummies(y_pred)
+# print(X_test, y_pred)
+# print(Y_test)
+# multilabel_confusion_matrix(Y_test, y_pred, *, labels=['Performance', 'Usability', 'Security', 'Operability', 'Maintainability'])
+
 
 # In[ ]:
 
@@ -674,7 +703,10 @@ multilabel_confusion_matrix(Y_test, y_pred, labels=['Performance', 'Usability', 
 # In[ ]:
 
 
-""" epochs = 10
-batch_size = 60
+# epochs = 10
+# batch_size = 60
 
-history = model.fit(X_train, Y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)]) """
+# history = model.fit(X_train, Y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1,callbacks=[EarlyStopping(monitor='val_loss', patience=3, min_delta=0.0001)])
+
+
+# In[ ]:
